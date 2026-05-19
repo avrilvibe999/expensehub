@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ExpenseHub</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f6f7fb;
+}
+
+h1 {
+    font-weight: 700;
+}
+
+.card {
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.btn-primary {
+    background: #6c5ce7;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #5a4bd6;
+}
+
+.btn-dark {
+    border-radius: 12px;
+}
+
+.table {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.alert {
+    border-radius: 14px;
+}
+
+select, input {
+    border-radius: 10px !important;
+}
+
+/* hover cute para filas */
+tr:hover {
+    background: #f1f2f6;
+    transition: 0.2s;
+}
+</style>
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+
+    <h1 class="mb-4">ExpenseHub Dashboard </h1>
+
+    <!-- FORMULARIO -->
+    <div class="card shadow p-4 mb-4">
+
+        <h4 class="mb-3">Agregar Gasto</h4>
+
+        <form action="/add-expense" method="POST">
+
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+                    <input type="text" name="title" class="form-control" placeholder="Título" required>
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="Monto" required>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <input type="text" name="category" class="form-control" placeholder="Categoría">
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <input type="date" name="expense_date" class="form-control">
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <button class="btn btn-dark w-100">Guardar</button>
+                </div>
+
+            </div>
+
+        </form>
+    </div>
+
+    <!-- TOTAL -->
+    <div class="alert alert-info">
+        <h4>Total gastado: $<span id="total"></span></h4>
+    </div>
+
+    <!-- FILTRO -->
+    <form method="GET" action="/dashboard" class="mb-3">
+
+        <select name="category" class="form-select w-25 d-inline">
+
+            <option value="" <%= !selectedCategory ? "selected" : "" %>>
+                Todas las categorías
+            </option>
+
+            <option value="comida" <%= selectedCategory === "comida" ? "selected" : "" %>>
+                Comida
+            </option>
+
+            <option value="transporte" <%= selectedCategory === "transporte" ? "selected" : "" %>>
+                Transporte
+            </option>
+
+            <option value="ocio" <%= selectedCategory === "ocio" ? "selected" : "" %>>
+                Ocio
+            </option>
+
+            <option value="otros" <%= selectedCategory === "otros" ? "selected" : "" %>>
+                Otros
+            </option>
+
+        </select>
+
+        <button class="btn btn-primary">Filtrar</button>
+    </form>
+
+    <!-- TABLA -->
+    <div class="card shadow p-4">
+
+        <h4 class="mb-4">Lista de Gastos</h4>
+
+        <table class="table table-striped">
+
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Monto</th>
+                    <th>Categoría</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <% expenses.forEach(expense => { %>
+                    <tr>
+                        <td><%= expense.title %></td>
+                        <td>$<%= expense.amount %></td>
+                        <td><%= expense.category %></td>
+                        <td><%= expense.expense_date %></td>
+
+                        <td>
+                            <a href="/edit-expense/<%= expense.id %>" class="btn btn-warning btn-sm">Editar</a>
+                            <a href="/delete-expense/<%= expense.id %>" class="btn btn-danger btn-sm">Eliminar</a>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+
+        </table>
+    </div>
+
+    <!-- GRÁFICO -->
+    <div class="card p-4 text-center">
+
+        <h4>Gastos por categoría 📊</h4>
+        <div style="max-width: 400px; margin: auto;">
+            <canvas id="chart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- TOTAL (FETCH) -->
+<script>
+async function loadTotal() {
+    const res = await fetch('/total-expenses');
+    const data = await res.json();
+
+    document.getElementById('total').innerText = data.total || 0;
+}
+
+loadTotal();
+</script>
+
+<script>
+const chartData = <%- JSON.stringify(chartData || {}) %>;
+
+const labels = Object.keys(chartData);
+const values = Object.values(chartData);
+
+// 🎨 colores bonitos automáticos
+const colors = [
+  '#FF6384',
+  '#36A2EB',
+  '#FFCE56',
+  '#4BC0C0',
+  '#9966FF',
+  '#FF9F40'
+];
+
+new Chart(document.getElementById("chart"), {
+  type: "pie",
+  data: {
+    labels: labels,
+    datasets: [{
+      label: "Gastos por categoría",
+      data: values,
+      backgroundColor: colors,
+      borderColor: "#fff",
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "bottom"
+      }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
