@@ -30,13 +30,16 @@ ExpenseHub es una aplicación web para el control de gastos personales. Permite 
 
 ## Base de datos
 
-Tabla principal: `expenses`
-
+### Crear base de datos: 
 ```sql
+CREATE DATABASE expensehub_db;
+
+USE expensehub_db;
+
 CREATE TABLE expenses (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(100) NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
+    title VARCHAR(100),
+    amount DECIMAL(10,2),
     category VARCHAR(50),
     expense_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
