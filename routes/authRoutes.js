@@ -4,7 +4,7 @@ const authController = require('../controllers/authController');
 
 // Vista login
 router.get('/login', (req, res) => {
-    res.render('login');
+    res.render('login', { error: null });
 });
 
 // Vista registro

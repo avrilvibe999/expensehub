@@ -1,36 +1,35 @@
 const db = require('../config/db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
-// Registro de usuario
-exports.register = async (req, res) => {
+// Mostrar login
+exports.showLogin = (req, res) => {
+    res.render('login', { error: null });
+};
 
-    const { name, email, password } = req.body;
+// Mostrar register
+exports.showRegister = (req, res) => {
+    res.render('register');
+};
 
-    try {
+// Registrar usuario
+exports.register = (req, res) => {
 
-        // Encriptar contraseña
-        const hashedPassword = await bcrypt.hash(password, 10);
+    const { email, password } = req.body;
 
-        // Guardar usuario
-        const sql = `
-            INSERT INTO users (name, email, password)
-            VALUES (?, ?, ?)
-        `;
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
-        db.query(sql, [name, email, hashedPassword], (err, result) => {
+    const sql = "INSERT INTO users (email, password) VALUES (?, ?)";
 
-            if (err) {
-                console.log(err);
-                return res.send('Error al registrar usuario');
-            }
+    db.query(sql, [email, hashedPassword], (err) => {
 
-            res.send('Usuario registrado correctamente 🚀');
-        });
+        if (err) {
+            console.log(err);
+            return res.send("Error al registrar usuario");
+        }
 
-    } catch (error) {
-        console.log(error);
-        res.send('Error del servidor');
-    }
+        // IMPORTANTE: ir a login después de registrar
+        res.redirect("/login");
+    });
 };
 
 // Login usuario
@@ -38,31 +37,35 @@ exports.login = (req, res) => {
 
     const { email, password } = req.body;
 
-    const sql = `
-        SELECT * FROM users WHERE email = ?
-    `;
+    const sql = "SELECT * FROM users WHERE email = ?";
 
-    db.query(sql, [email], async (err, results) => {
+    db.query(sql, [email], (err, results) => {
 
         if (err) {
             console.log(err);
-            return res.send('Error del servidor');
+            return res.send("Error en login");
         }
 
-        // Usuario no encontrado
+
         if (results.length === 0) {
-            return res.send('Usuario no encontrado');
+            return res.render("login", { error: "Usuario no encontrado. Por favor crea una cuenta :)" });
         }
 
         const user = results[0];
 
-        // Comparar contraseña
-        const validPassword = await bcrypt.compare(password, user.password);
+        const isValid = bcrypt.compareSync(password, user.password);
 
-        if (!validPassword) {
-            return res.send('Contraseña incorrecta');
+
+        if (!isValid) {
+            return res.render("login", { error: "Contraseña incorrecta. Intenta de nuevo" });
         }
 
-        res.redirect('/dashboard');
+        // login correcto
+        req.session.user = {
+            id: user.id,
+            email: user.email
+        };
+
+        res.redirect("/dashboard");
     });
 };
